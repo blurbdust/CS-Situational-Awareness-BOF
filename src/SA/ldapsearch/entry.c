@@ -14,6 +14,8 @@
 #include <secext.h> 
 
 #define MAX_ATTRIBUTES 100
+// https://docs.microsoft.com/en-us/troubleshoot/windows-server/identity/domain-controller-returns-500-values-ldap-response
+#define MAX_PAGE_SIZE 20000
 
 typedef long (*_fuuidtostring)(UUID *Uuid,RPC_CSTR *StringUuid);
 typedef long (*_RpcStringFreeA)(RPC_CSTR *String);
@@ -153,19 +155,38 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
         }
     }
 
-        
-		pSearchResult = WLDAP32$ldap_search_init_pageA(
+    ULONG ber_len = 5;
+    char ber_val[5] = {'0', '\03', '\02', '\01', '\07'};
+    LDAP_BERVAL ber = *(BERVAL *)MSVCRT$malloc(sizeof(LDAP_BERVAL));
+    memset(&ber, 0, sizeof(ber));
+    
+    LDAPControlA c = *(LDAPControlA *)MSVCRT$malloc(sizeof(c));
+    memset(&c, 0, sizeof(c));
+    c.ldctl_oid = "1.2.840.113556.1.4.801";
+    c.ldctl_value = ber;
+    c.ldctl_value.bv_len = 5;
+    c.ldctl_value.bv_val = ber_val;
+    c.ldctl_iscritical = 0;
+
+    LDAPControlA *b = &c;
+    PLDAPControlA *d = &b;
+
+	pSearchResult = WLDAP32$ldap_search_init_pageA(
         pLdapConnection,    // Session handle
         distinguishedName,  // DN to start search
         LDAP_SCOPE_SUBTREE, // Scope
         ldap_filter,        // Filter
         (*attr) ? attr : NULL,               // Retrieve list of attributes
         0,                  // Get both attributes and values
-        NULL,
+        d,
         NULL,
         15,
         maxResults,
         NULL);    // [out] Search results
+
+    // free new objects
+    //MSVCRT$free(&ber);
+    //MSVCRT$free(&c);
     
     if (pSearchResult == NULL) 
     {
