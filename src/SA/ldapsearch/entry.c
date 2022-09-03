@@ -157,10 +157,12 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
 
     ULONG ber_len = 5;
     char ber_val[5] = {'0', '\03', '\02', '\01', '\07'};
-    LDAP_BERVAL ber = *(BERVAL *)MSVCRT$malloc(sizeof(LDAP_BERVAL));
+    PLDAP_BERVAL pBer= (BERVAL *)MSVCRT$malloc(sizeof(LDAP_BERVAL));
+    LDAP_BERVAL ber = *pBer;
     memset(&ber, 0, sizeof(ber));
     
-    LDAPControlA c = *(LDAPControlA *)MSVCRT$malloc(sizeof(c));
+    PLDAPControlA pC = (LDAPControlA *)MSVCRT$malloc(sizeof(PLDAPControlA));
+    LDAPControlA c = *pC;
     memset(&c, 0, sizeof(c));
     c.ldctl_oid = "1.2.840.113556.1.4.801";
     c.ldctl_value = ber;
@@ -185,8 +187,8 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
         NULL);    // [out] Search results
 
     // free new objects
-    //MSVCRT$free(&ber);
-    //MSVCRT$free(&c);
+    MSVCRT$free(pBer);
+    MSVCRT$free(pC);
     
     if (pSearchResult == NULL) 
     {
